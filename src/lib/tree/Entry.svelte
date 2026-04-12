@@ -6,10 +6,12 @@
     import Self from "../tree/Entry.svelte"
 	import { openFileIds, openFolderIds } from "./store.ts";
 
-    type Prop = Pick<Props, "onToggleEntry"> & { entry: File | Folder }
+    type Prop = Pick<Props, "onToggleEntry" | "oneFileSelected" | "clickToUnselectFile"> & { entry: File | Folder }
 
     let {
         entry,
+        oneFileSelected,
+        clickToUnselectFile,
         onToggleEntry
     }: Prop = $props();
 
@@ -28,6 +30,21 @@
                 }
                 else $openFolderIds = [...$openFolderIds, entry.id];
             }
+            else if (entry.type === "file") {
+                if (isFileAndOpen && clickToUnselectFile) {
+                    const thisFileListIndex = $openFileIds.findIndex(fileId => fileId === entry.id);
+                    if (thisFileListIndex > -1) {
+                        $openFileIds.splice(thisFileListIndex, 1);
+                        $openFileIds = $openFileIds;
+                    }
+                }
+                else if ($openFileIds.length >= 1 && !oneFileSelected) {
+                    $openFileIds = [...$openFileIds, entry.id];
+                }
+                else {
+                    $openFileIds = [entry.id];
+                }
+            }
             
             // Emit for different folders
             onToggleEntry(entry);
@@ -37,7 +54,7 @@
 
 <div class="w-full">
     <button 
-        class="entry-register w-full flex gap-1 items-center cursor-pointer hover:bg-white/5"
+        class="entry-register w-full flex gap-1 items-center cursor-pointer hover:bg-white/5 {isFileAndOpen ? "bg-white/10" : ""}"
         onclick={onToggleEntryLocal(entry)}
     >
         {#if entry.type === "folder"}
@@ -58,7 +75,12 @@
     {#if isFolderAndOpen && entry.type === "folder"}
         <div class="pl-4">
             {#each entry.subentries as subentry}
-                <Self entry={subentry} {onToggleEntry}/>
+                <Self 
+                    entry={subentry}
+                    {clickToUnselectFile}
+                    {oneFileSelected}
+                    {onToggleEntry}
+                />
             {/each}
         </div>
     {/if}

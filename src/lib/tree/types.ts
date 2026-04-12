@@ -3,16 +3,12 @@ export interface File {
     type: "file";
     /** It's file name with file extension */
     name: string;
-    /** When open file content is showing */
-    isOpen?: boolean;
 }
 
 export interface Folder {
     id: string;
     type: "folder";
     name: string;
-    /** When open `subentries` are shown */
-    isOpen?: boolean;
     subentries: (Folder | File)[];
 }
 
@@ -22,7 +18,6 @@ export interface Project {
     name: string;
     /** Specified only for project name */
     gitRepositoryURL?: string;
-    isOpen?: boolean;
     entries: (Folder | File)[];
 }
 

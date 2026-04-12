@@ -8,6 +8,7 @@
             refresh: boolean;
         };
         oneFileSelected?: boolean;
+        clickToUnselectFile?: boolean;
         /** Whether icons will be shown in treeview */
         showIcons?: boolean;
         projects: Project[];
@@ -29,6 +30,7 @@
 	import Entry from "./Entry.svelte";
 
     import Icon from "./IconifyOffline.svelte"
+	import { openProjectIds, openProjects } from "./store.ts";
     import type { File, Folder, Project } from "./types.ts";
 
     let {
@@ -40,12 +42,19 @@
             refresh: true
         },
         oneFileSelected = true,
+        clickToUnselectFile = true,
         projects = $bindable([]),
         showIcons = true,
         version = "desktop",
         onToggleEntry,
         onToggleProject
     }: Props = $props();
+
+    // Assign the projects
+    $effect(() => {
+        projects;
+        $openProjects = projects;
+    });
 
     type ButtonName = keyof NonNullable<Props["nameStripeButtons"]>
 
@@ -56,9 +65,21 @@
         refresh: "material-symbols:refresh-rounded"
     }
 
-    function onToggleProjectHandle(project: Project) {
+    function onToggleProjectHandle(project: Project, isProjectOpen: boolean) {
         return () => {
-            projects = projects.map(projectLocal => projectLocal.id === project.id ? { ...projectLocal, isOpen: !projectLocal.isOpen } : projectLocal)
+            if (isProjectOpen) {
+                const listId = $openProjectIds.findIndex(projectid => projectid === project.id);
+
+                if (listId > -1) {
+                    $openProjectIds.splice(listId, 1);
+                }
+
+                // Opened project ID
+                $openProjectIds = $openProjectIds;
+            }
+            else $openProjectIds = [...$openProjectIds, project.id];
+
+            // Handle external user passed function
             onToggleProject(project);
         }
     }
@@ -88,22 +109,26 @@
     </div>
 
     <div>
-        {#each projects as project (project.id)}
+        {#each $openProjects as project (project.id)}
+            {@const isProjectOpen = $openProjectIds.includes(project.id)}
+        
             <div class="w-full">
                 <button 
                     class="w-full flex gap-4 justify-between items-center cursor-poiner hover:bg-white/5 p-1 rounded-lg"
-                    onclick={onToggleProjectHandle(project)}
+                    onclick={onToggleProjectHandle(project, isProjectOpen)}
                 >
                     <span class="font-semibold">{project.name}</span>
 
                     <div class="btn btn-ghost btn-xs">
-                        <Icon icon={!project.isOpen ? "material-symbols:keyboard-arrow-up-rounded" : "material-symbols:keyboard-arrow-down-rounded"}/>
+                        <Icon icon={!isProjectOpen ? "material-symbols:keyboard-arrow-up-rounded" : "material-symbols:keyboard-arrow-down-rounded"}/>
                     </div>
                 </button>
 
-                {#if project.isOpen}
+                {#if isProjectOpen}
                     {#each project.entries as entry}
-                        <Entry 
+                        <Entry
+                            {clickToUnselectFile}
+                            {oneFileSelected}
                             {entry}
                             {onToggleEntry}
                         />

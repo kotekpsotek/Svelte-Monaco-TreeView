@@ -123,6 +123,22 @@
     const onToggleProject: Props["onToggleProject"] = (project) => {
 
     }
+
+    const onNewFile: Props["onNewFile"] = () => {
+
+    }
+
+    const onNewFolder: Props["onNewFolder"] = () => {
+
+    }
+    
+    const onNewProject: Props["onNewProject"] = () => {
+
+    }
+
+    const onRefreshTreeView: Props["onRefreshTreeView"] = () => {
+        
+    }
 </script>
 
 <div class="w-[500px]">
@@ -131,5 +147,9 @@
         {projects}
         {onToggleEntry}
         {onToggleProject}
+        {onNewFile}
+        {onNewFolder}
+        {onNewProject}
+        {onRefreshTreeView}
     />
 </div>
