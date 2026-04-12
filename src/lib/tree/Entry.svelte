@@ -4,20 +4,35 @@
     import ProgrammingIcon from "./Icon.svelte";
     import Icon from "./IconifyOffline.svelte";
     import Self from "../tree/Entry.svelte"
-	import { openFileIds, openFolderIds } from "./store.ts";
+	import { activeContextMenu, openFileIds, openFolderIds } from "./store.ts";
 
-    type Prop = Pick<Props, "onToggleEntry" | "oneFileSelected" | "clickToUnselectFile"> & { entry: File | Folder }
+    type Prop = Pick<Props, "onToggleEntry" | "oneFileSelected" | "clickToUnselectFile"> & {
+        entry: File | Folder;
+        onEntryContextMenu?: (event: MouseEvent, entry: File | Folder) => void;
+    }
 
     let {
         entry,
         oneFileSelected,
         clickToUnselectFile,
-        onToggleEntry
+        onToggleEntry,
+        onEntryContextMenu: onEntryContextMenuFromTree
     }: Prop = $props();
 
     let isFolderAndOpen = $derived(entry.type === "folder" && $openFolderIds.some(folderID => folderID === entry.id))
     let isFileAndOpen = $derived(entry.type === "file" && $openFileIds.some(fileID => fileID === entry.id))
     let isOpen = $derived(isFolderAndOpen || isFileAndOpen ? true : false);
+    let isContextMenuOpen = $derived.by(() => {
+        if (!$activeContextMenu) {
+            return false;
+        }
+
+        if (entry.type === "file") {
+            return $activeContextMenu.kind === "file" && $activeContextMenu.file.id === entry.id;
+        }
+
+        return $activeContextMenu.kind === "folder" && $activeContextMenu.folder.id === entry.id;
+    });
     
     function onToggleEntryLocal(entry: File | Folder) {
         return () => {
@@ -61,17 +76,20 @@
         });
     }
 
-    function onEntryContextMenu() {
-
+    function onEntryContextMenu(entry: File | Folder) {
+        return (event: MouseEvent) => {
+            onEntryContextMenuFromTree?.(event, entry);
+        };
     }
 </script>
 
 <div class="w-full">
     <div class="{entry.type === "file" ? "ml-2" : ""}">
         <button 
-            class="entry-register p-1 w-full flex gap-1 items-center cursor-pointer hover:bg-white/5 rounded-lg {isFileAndOpen ? "bg-white/10" : ""}"
+            class="entry-register p-1 w-full flex gap-1 items-center cursor-pointer hover:bg-white/5 rounded-lg border border-transparent {isFileAndOpen ? "bg-white/10" : ""}"
+            class:context-menu-open={isContextMenuOpen}
             onclick={onToggleEntryLocal(entry)}
-            oncontextmenu={onEntryContextMenu}
+            oncontextmenu={onEntryContextMenu(entry)}
         >
             {#if entry.type === "folder"}
                 <span>
@@ -95,8 +113,16 @@
                     {clickToUnselectFile}
                     {oneFileSelected}
                     {onToggleEntry}
+                    onEntryContextMenu={onEntryContextMenuFromTree}
                 />
             {/each}
         </div>
     {/if}
 </div>
+
+<style>
+    .context-menu-open {
+        border-color: rgb(96 165 250 / 0.9);
+        box-shadow: inset 0 0 0 1px rgb(96 165 250 / 0.9);
+    }
+</style>
