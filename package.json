@@ -1,5 +1,5 @@
 {
-	"name": "monacoeditortreeviewsvelte",
+	"name": "@ravenlens/monaco-tree-view-svelte",
 	"version": "0.0.1",
 	"author": "Michał Szczepański (kotekpsotek)",
 	"scripts": {
@@ -56,6 +56,7 @@
 		"@types/node": "^24",
 		"@vitest/browser-playwright": "^4.1.0",
 		"@vitest/coverage-v8": "^4.1.0",
+		"daisyui": "^5.5.19",
 		"playwright": "^1.58.2",
 		"prettier": "^3.8.1",
 		"prettier-plugin-svelte": "^3.4.1",
@@ -74,6 +75,7 @@
 		"svelte"
 	],
 	"dependencies": {
+		"@iconify-icons/material-symbols": "^1.2.58",
 		"@iconify/svelte": "^5.2.1",
 		"@tanstack/svelte-virtual": "^3.13.23"
 	}

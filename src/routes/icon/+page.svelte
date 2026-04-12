@@ -4,6 +4,11 @@
 
 	type EntryType = "file" | "folder";
 
+	const createEntryId = (prefix: EntryType, value: string): string => {
+		const normalizedValue = value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+		return normalizedValue ? `${prefix}-${normalizedValue}` : prefix;
+	};
+
 	let entryType = $state<EntryType>("file");
 	let entryName = $state("example.ts");
 	let folderEntriesSpec = $state("file:index.ts\nfile:App.svelte\nfile:types.ts");
@@ -38,11 +43,16 @@
 			}
 
 			if (rawType === "file") {
-				parsedEntries.push({ type: "file", name: rawName });
+				parsedEntries.push({ id: createEntryId("file", rawName), type: "file", name: rawName });
 				continue;
 			}
 
-			parsedEntries.push({ type: "folder", name: rawName, subentries: [] });
+			parsedEntries.push({
+				id: createEntryId("folder", rawName),
+				type: "folder",
+				name: rawName,
+				subentries: []
+			});
 		}
 
 		return { entries: parsedEntries, errors };
@@ -50,10 +60,15 @@
 
 	const previewEntry = $derived.by<File | Folder>(() => {
 		if (entryType === "file") {
-			return { type: "file", name: entryName || "untitled" };
+			return {
+				id: createEntryId("file", entryName || "untitled"),
+				type: "file",
+				name: entryName || "untitled"
+			};
 		}
 
 		return {
+			id: createEntryId("folder", entryName || "folder"),
 			type: "folder",
 			name: entryName || "folder",
 			subentries: parsedFolderEntries.entries
@@ -90,7 +105,7 @@
 
 			{#if parsedFolderEntries.errors.length > 0}
 				<ul class="errors">
-					{#each parsedFolderEntries.errors as error}
+					{#each parsedFolderEntries.errors as error, index (index)}
 						<li>{error}</li>
 					{/each}
 				</ul>

@@ -1,4 +1,5 @@
 export interface File {
+    id: string;
     type: "file";
     /** It's file name with file extension */
     name: string;
@@ -7,6 +8,7 @@ export interface File {
 }
 
 export interface Folder {
+    id: string;
     type: "folder";
     name: string;
     /** When open `subentries` are shown */
@@ -15,6 +17,8 @@ export interface Folder {
 }
 
 export interface Project {
+    /** It's unique file id */
+    id: string;
     name: string;
     /** Specified only for project name */
     gitRepositoryURL?: string;

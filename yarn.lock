@@ -72,6 +72,13 @@
   resolved "https://registry.npmjs.org/@esbuild/win32-x64/-/win32-x64-0.27.7.tgz"
   integrity sha512-56hiAJPhwQ1R4i+21FVF7V8kSD5zZTdHcVuRFMW0hn753vVfQN8xlx4uOPT4xoGH0Z/oVATuR82AiqSTDIpaHg==
 
+"@iconify-icons/material-symbols@^1.2.58":
+  version "1.2.58"
+  resolved "https://registry.npmjs.org/@iconify-icons/material-symbols/-/material-symbols-1.2.58.tgz"
+  integrity sha512-v0ZfPXlmDcDPCejxhg5h2eHCEHClrpn+i44Ev766vkzPIEFRdgT+YK942KzyqBpH0RhKJfel4OZdL1DY1oa5Qg==
+  dependencies:
+    "@iconify/types" "*"
+
 "@iconify/svelte@^5.2.1":
   version "5.2.1"
   resolved "https://registry.npmjs.org/@iconify/svelte/-/svelte-5.2.1.tgz"
@@ -79,7 +86,7 @@
   dependencies:
     "@iconify/types" "^2.0.0"
 
-"@iconify/types@^2.0.0":
+"@iconify/types@*", "@iconify/types@^2.0.0":
   version "2.0.0"
   resolved "https://registry.npmjs.org/@iconify/types/-/types-2.0.0.tgz"
   integrity sha512-+wluvCrRhXrhyOmRDJ3q8mux9JkKy5SJ/v8ol2tu4FVjyYvtEzkc/3pK15ET6RKg4b4w4BmTk1+gsCUhf21Ykg==
