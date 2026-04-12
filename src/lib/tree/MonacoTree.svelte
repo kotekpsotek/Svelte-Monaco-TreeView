@@ -1,4 +1,6 @@
 <script lang="ts" module>
+	import type { Snippet } from "svelte";
+
     export interface Props {
         treeName: string;
         nameStripeButtons?: {
@@ -23,6 +25,7 @@
         onNewProject: () => Promise<void> | void;
         onRefreshTreeView: () => Promise<void> | void;
         version?: "mobile" | "desktop";
+        noProjectContainer?: Snippet;
     }
 </script>
 
@@ -47,7 +50,8 @@
         showIcons = true,
         version = "desktop",
         onToggleEntry,
-        onToggleProject
+        onToggleProject,
+        noProjectContainer
     }: Props = $props();
 
     // Assign the projects
@@ -83,14 +87,28 @@
             onToggleProject(project);
         }
     }
+
+    function sortEntries(entries: Array<File | Folder>) {
+        return [...entries].sort((a, b) => {
+            if (a.type !== b.type) {
+                return a.type === "folder" ? -1 : 1;
+            }
+
+            return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+        });
+    }
+
+    function onProjectContextMenu() {
+
+    }
 </script>
 
 <div
-    class="flex flex-col gap-2 w-full h-full overflow-y-auto p-4"
+    class="flex flex-col gap-2 w-full h-full p-4"
 >
     <div 
         id="tree-view-heading"
-        class="flex gap-2 items-center justify-between"
+        class="flex gap-2 items-center justify-between select-none"
     >
         <h3 class="font-bold">{treeName}</h3>
 
@@ -108,33 +126,56 @@
         </div>
     </div>
 
-    <div>
-        {#each $openProjects as project (project.id)}
-            {@const isProjectOpen = $openProjectIds.includes(project.id)}
-        
-            <div class="w-full">
-                <button 
-                    class="w-full flex gap-4 justify-between items-center cursor-poiner hover:bg-white/5 p-1 rounded-lg"
-                    onclick={onToggleProjectHandle(project, isProjectOpen)}
-                >
-                    <span class="font-semibold">{project.name}</span>
+    <div class="h-full overflow-y-auto overflow-x-auto">
+        {#if $openProjects.length}
+            {#each $openProjects as project (project.id)}
+                {@const isProjectOpen = $openProjectIds.includes(project.id)}
+                {@const sortedEntries = sortEntries(project.entries)}
+            
+                <div class="w-full">
+                    <button 
+                        class="w-full flex gap-4 justify-between items-center cursor-poiner hover:bg-white/5 p-1 rounded-lg"
+                        onclick={onToggleProjectHandle(project, isProjectOpen)}
+                        oncontextmenu={onProjectContextMenu}
+                    >
+                        <div
+                            class="flex gap-2 items-center"
+                        >
+                            <Icon icon="material-symbols:code-blocks-outline-rounded"/>
+                            <span class="font-semibold">{project.name}</span>
+                        </div>
 
-                    <div class="btn btn-ghost btn-xs">
-                        <Icon icon={!isProjectOpen ? "material-symbols:keyboard-arrow-up-rounded" : "material-symbols:keyboard-arrow-down-rounded"}/>
+                        <div class="btn btn-ghost btn-xs">
+                            <Icon icon={!isProjectOpen ? "material-symbols:keyboard-arrow-up-rounded" : "material-symbols:keyboard-arrow-down-rounded"}/>
+                        </div>
+                    </button>
+
+                    <div
+                        class="pl-4"
+                    >
+                        {#if isProjectOpen}
+                            {#each sortedEntries as entry}
+                                <Entry
+                                    {clickToUnselectFile}
+                                    {oneFileSelected}
+                                    {entry}
+                                    {onToggleEntry}
+                                />
+                            {/each}
+                        {/if}
                     </div>
-                </button>
-
-                {#if isProjectOpen}
-                    {#each project.entries as entry}
-                        <Entry
-                            {clickToUnselectFile}
-                            {oneFileSelected}
-                            {entry}
-                            {onToggleEntry}
-                        />
-                    {/each}
+                </div>
+            {/each}
+        {:else}
+            <div
+                class="flex w-full h-full items-center justify-center select-none"
+            >
+                {#if noProjectContainer}
+                    {@render noProjectContainer()}
+                {:else}
+                    <p class="text-sm text-base-content/70">No Projects Open</p>
                 {/if}
             </div>
-        {/each}
+        {/if}
     </div>
 </div>

@@ -7,13 +7,11 @@
             id: "monaco-editor-tree-view",
             name: "Monaco Editor Tree View",
             gitRepositoryURL: "https://github.com/ravenone/monaco-editor-tree-view",
-            isOpen: true,
             entries: [
                 {
                     id: "monaco-src",
                     type: "folder",
                     name: "src",
-                    isOpen: true,
                     subentries: [
                         {
                             id: "monaco-tree-component",
@@ -29,7 +27,6 @@
                             id: "monaco-tree-icons",
                             type: "folder",
                             name: "icons",
-                            isOpen: false,
                             subentries: [
                                 {
                                     id: "monaco-tree-icon-file",
@@ -56,13 +53,11 @@
             id: "tree-view-showcase",
             name: "Tree View Showcase",
             gitRepositoryURL: "https://github.com/ravenone/tree-view-showcase",
-            isOpen: true,
             entries: [
                 {
                     id: "showcase-components",
                     type: "folder",
                     name: "components",
-                    isOpen: true,
                     subentries: [
                         {
                             id: "showcase-header",
@@ -78,7 +73,6 @@
                             id: "showcase-assets",
                             type: "folder",
                             name: "assets",
-                            isOpen: false,
                             subentries: [
                                 {
                                     id: "showcase-logo",
@@ -98,7 +92,6 @@
                     id: "showcase-notes",
                     type: "folder",
                     name: "notes",
-                    isOpen: false,
                     subentries: [
                         {
                             id: "showcase-roadmap",
@@ -137,11 +130,11 @@
     }
 
     const onRefreshTreeView: Props["onRefreshTreeView"] = () => {
-        
+
     }
 </script>
 
-<div class="w-[500px]">
+<div class="w-[500px] h-screen">
     <MonacoTree
         treeName="Test Tree"
         {projects}

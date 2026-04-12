@@ -50,31 +50,46 @@
             onToggleEntry(entry);
         }
     }
+
+    function sortEntries(entries: Array<File | Folder>) {
+        return [...entries].sort((a, b) => {
+            if (a.type !== b.type) {
+                return a.type === "folder" ? -1 : 1;
+            }
+
+            return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+        });
+    }
+
+    function onEntryContextMenu() {
+
+    }
 </script>
 
 <div class="w-full">
-    <button 
-        class="entry-register w-full flex gap-1 items-center cursor-pointer hover:bg-white/5 {isFileAndOpen ? "bg-white/10" : ""}"
-        onclick={onToggleEntryLocal(entry)}
-    >
-        {#if entry.type === "folder"}
-            <span>
-                <Icon icon={isOpen ? "material-symbols:keyboard-arrow-up-rounded" : "material-symbols:keyboard-arrow-down-rounded"}/>
-            </span>
-        {/if}
-
-        <span
-            class="{entry.type === "file" ? "ml-5" : ""}"
+    <div class="{entry.type === "file" ? "ml-2" : ""}">
+        <button 
+            class="entry-register p-1 w-full flex gap-1 items-center cursor-pointer hover:bg-white/5 rounded-lg {isFileAndOpen ? "bg-white/10" : ""}"
+            onclick={onToggleEntryLocal(entry)}
+            oncontextmenu={onEntryContextMenu}
         >
-            <ProgrammingIcon {entry}/>
-        </span>
-
-        <span>{entry.name}</span>
-    </button>
+            {#if entry.type === "folder"}
+                <span>
+                    <Icon icon={isOpen ? "material-symbols:keyboard-arrow-up-rounded" : "material-symbols:keyboard-arrow-down-rounded"}/>
+                </span>
+            {/if}
+    
+            <span>
+                <ProgrammingIcon {entry}/>
+            </span>
+    
+            <span>{entry.name}</span>
+        </button>
+    </div>
 
     {#if isFolderAndOpen && entry.type === "folder"}
-        <div class="pl-4">
-            {#each entry.subentries as subentry}
+        <div class="ml-4">
+            {#each sortEntries(entry.subentries) as subentry}
                 <Self 
                     entry={subentry}
                     {clickToUnselectFile}
