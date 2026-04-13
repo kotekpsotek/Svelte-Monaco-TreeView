@@ -11,19 +11,27 @@ type ActiveContextMenu =
         kind: "project";
         x: number;
         y: number;
+        projectId: Project["id"];
         project: Project;
     }
     | {
         kind: "file";
         x: number;
         y: number;
+        projectId: Project["id"];
         file: File;
     }
     | {
         kind: "folder";
         x: number;
         y: number;
+        projectId: Project["id"];
         folder: Folder;
+    }
+    | {
+        kind: "empty-tray";
+        x: number;
+        y: number;
     }
     | null;
 export const activeContextMenu = writable<ActiveContextMenu>(null);
