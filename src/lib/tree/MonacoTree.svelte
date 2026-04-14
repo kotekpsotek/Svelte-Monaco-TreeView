@@ -283,6 +283,7 @@
     let pendingRename = $state<PendingRenameState | null>(null);
     let dragState = $state<DragState | null>(null);
     let activeDropTarget = $state<DropTarget | null>(null);
+    let selectedProjectId = $state<string | null>(null);
     let pendingProjectName = $state("");
 
     let nestedRenameState = $derived.by((): NestedRenameState | null => {
@@ -310,6 +311,17 @@
         showIcons;
         version;
         $openProjects = projects;
+    });
+
+    $effect(() => {
+        if (!projects.length) {
+            selectedProjectId = null;
+            return;
+        }
+
+        if (!selectedProjectId || !projects.some((project) => project.id === selectedProjectId)) {
+            selectedProjectId = projects[0].id;
+        }
     });
 
     function createId(prefix: string): string {
@@ -361,6 +373,14 @@
         return [...list.slice(0, index), ...list.slice(index + 1)];
     }
 
+    function addUniqueId(list: string[], id: string): string[] {
+        if (list.includes(id)) {
+            return list;
+        }
+
+        return [...list, id];
+    }
+
     function setProjects(nextProjects: Project[]) {
         projects = nextProjects;
         $openProjects = nextProjects;
@@ -409,6 +429,30 @@
 
         const project = items[projectIndex];
         return findEntryInEntries(project.entries, entryId, project, projectIndex, null);
+    }
+
+    function findFolderPathInEntries(entries: TreeEntry[], folderId: string, parentPath: string[]): string[] | null {
+        for (const entry of entries) {
+            if (entry.type !== "folder") {
+                continue;
+            }
+
+            const nextPath = [...parentPath, entry.id];
+            if (entry.id === folderId) {
+                return nextPath;
+            }
+
+            const nestedPath = findFolderPathInEntries(entry.subentries, folderId, nextPath);
+            if (nestedPath) {
+                return nestedPath;
+            }
+        }
+
+        return null;
+    }
+
+    function getFolderPath(project: Project, folderId: string): string[] | null {
+        return findFolderPathInEntries(project.entries, folderId, []);
     }
 
     function findProjectById(items: Project[], projectId: string): { project: Project; projectIndex: number } | null {
@@ -518,11 +562,15 @@
             return false;
         }
 
-        if (target.kind === "project") {
+        if (target.kind === "project" && currentTarget.kind === "project") {
             return target.projectId === currentTarget.projectId;
         }
 
-        return target.projectId === currentTarget.projectId && target.folderId === currentTarget.folderId;
+        if (target.kind === "folder" && currentTarget.kind === "folder") {
+            return target.projectId === currentTarget.projectId && target.folderId === currentTarget.folderId;
+        }
+
+        return false;
     }
 
     function isProjectDropTarget(projectId: string): boolean {
@@ -535,6 +583,8 @@
     }
 
     function toggleProjectOpen(project: Project) {
+        selectedProjectId = project.id;
+
         if ($openProjectIds.includes(project.id)) {
             $openProjectIds = removeId($openProjectIds, project.id);
         }
@@ -545,7 +595,9 @@
         onToggleProject(project);
     }
 
-    function toggleFolderOpen(folder: Folder) {
+    function toggleFolderOpen(folder: Folder, projectId: string) {
+        selectedProjectId = projectId;
+
         if ($openFolderIds.includes(folder.id)) {
             $openFolderIds = removeId($openFolderIds, folder.id);
         }
@@ -556,7 +608,9 @@
         onToggleEntry(folder);
     }
 
-    function selectFile(file: File) {
+    function selectFile(file: File, projectId: string) {
+        selectedProjectId = projectId;
+
         if ($openFileIds.includes(file.id)) {
             return;
         }
@@ -571,7 +625,9 @@
         onToggleEntry(file);
     }
 
-    function unselectFile(file: File) {
+    function unselectFile(file: File, projectId: string) {
+        selectedProjectId = projectId;
+
         if (!$openFileIds.includes(file.id)) {
             return;
         }
@@ -672,6 +728,33 @@
         };
     }
 
+    function ensureCreateTargetVisible(target: CreateTarget) {
+        $openProjectIds = addUniqueId($openProjectIds, target.projectId);
+
+        if (target.folderId === null) {
+            return;
+        }
+
+        const projectData = findProjectById(projects, target.projectId);
+        if (!projectData) {
+            $openFolderIds = addUniqueId($openFolderIds, target.folderId);
+            return;
+        }
+
+        const folderPath = getFolderPath(projectData.project, target.folderId);
+        if (!folderPath) {
+            $openFolderIds = addUniqueId($openFolderIds, target.folderId);
+            return;
+        }
+
+        let nextOpenFolderIds = $openFolderIds;
+        for (const folderId of folderPath) {
+            nextOpenFolderIds = addUniqueId(nextOpenFolderIds, folderId);
+        }
+
+        $openFolderIds = nextOpenFolderIds;
+    }
+
     function resolveDefaultCreateTarget(): CreateTarget | null {
         if ($activeContextMenu?.kind === "project") {
             return {
@@ -691,7 +774,7 @@
             return resolveEntryParentTarget($activeContextMenu.projectId, $activeContextMenu.file);
         }
 
-        const fallbackProjectId = $openProjectIds[0] ?? projects[0]?.id;
+        const fallbackProjectId = selectedProjectId ?? $openProjectIds.at(-1) ?? projects[0]?.id;
         if (!fallbackProjectId) {
             return null;
         }
@@ -703,6 +786,8 @@
     }
 
     async function startCreate(kind: "file" | "folder", target: CreateTarget) {
+        selectedProjectId = target.projectId;
+
         const context = resolveCreateContext(target);
         if (!context) {
             return;
@@ -721,9 +806,7 @@
             target
         };
 
-        if (target.folderId !== null && !$openFolderIds.includes(target.folderId)) {
-            $openFolderIds = [...$openFolderIds, target.folderId];
-        }
+        ensureCreateTargetVisible(target);
     }
 
     async function startCreateProject() {
@@ -1018,10 +1101,10 @@
 
     async function runFileDefaultAction(action: FileContextMenuAction, file: File, projectId: string) {
         if (action === "select-file") {
-            selectFile(file);
+            selectFile(file, projectId);
         }
         else if (action === "unselect-file") {
-            unselectFile(file);
+            unselectFile(file, projectId);
         }
         else if (action === "new-file") {
             const target = resolveEntryParentTarget(projectId, file);
@@ -1050,7 +1133,7 @@
 
     async function runFolderDefaultAction(action: FolderContextMenuAction, folder: Folder, projectId: string) {
         if (action === "toggle-folder") {
-            toggleFolderOpen(folder);
+            toggleFolderOpen(folder, projectId);
         }
         else if (action === "new-file") {
             await startCreate("file", { projectId, folderId: folder.id });
@@ -1102,6 +1185,8 @@
             event.preventDefault();
             event.stopPropagation();
 
+            selectedProjectId = project.id;
+
             $activeContextMenu = {
                 kind: "project",
                 x: event.clientX,
@@ -1119,6 +1204,8 @@
     function onEntryContextMenu(event: MouseEvent, entry: TreeEntry, projectId: string) {
         event.preventDefault();
         event.stopPropagation();
+
+        selectedProjectId = projectId;
 
         if (entry.type === "file") {
             $activeContextMenu = {
@@ -1164,6 +1251,8 @@
             return;
         }
 
+        selectedProjectId = projectId;
+
         activeDropTarget = {
             kind: "project",
             projectId
@@ -1182,6 +1271,8 @@
             return;
         }
 
+        selectedProjectId = projectId;
+
         activeDropTarget = {
             kind: "folder",
             projectId,
@@ -1198,6 +1289,13 @@
 
         const currentTarget = event.currentTarget;
         const nextTarget = event.relatedTarget;
+
+        // WebView2 may report null relatedTarget while still dragging within the tree.
+        // Keep highlight until a new dragover, drop, or dragend arrives.
+        if (nextTarget === null) {
+            return;
+        }
+
         if (currentTarget instanceof Node && nextTarget instanceof Node && currentTarget.contains(nextTarget)) {
             return;
         }
@@ -1210,6 +1308,8 @@
 
         clearDropTarget();
 
+        selectedProjectId = projectId;
+
         dragState = {
             projectId,
             entryId: entry.id
@@ -1218,6 +1318,7 @@
         if (event.dataTransfer) {
             event.dataTransfer.effectAllowed = "move";
             event.dataTransfer.setData("text/plain", `${projectId}:${entry.id}`);
+            event.dataTransfer.setData("application/x-monaco-tree-entry", JSON.stringify({ projectId, entryId: entry.id }));
         }
     }
 
@@ -1242,6 +1343,8 @@
         event.stopPropagation();
         clearDropTarget();
 
+        selectedProjectId = project.id;
+
         await moveDraggedEntry({
             projectId: project.id,
             folderId: null
@@ -1251,6 +1354,13 @@
     function onToggleProjectHandle(project: Project) {
         return () => {
             toggleProjectOpen(project);
+        };
+    }
+
+    function onToggleEntryForProject(projectId: string) {
+        return (entry: TreeEntry) => {
+            selectedProjectId = projectId;
+            onToggleEntry(entry);
         };
     }
 
@@ -1342,9 +1452,19 @@
                     pendingCreate?.target.projectId === project.id &&
                     pendingCreate?.target.folderId === null}
 
-                <div class="w-full">
+                <div
+                    class="w-full"
+                    role="presentation"
+                    ondragover={(event) => onProjectDragOver(event, project.id)}
+                    ondragleave={(event) =>
+                        onDropTargetDragLeave(event, {
+                            kind: "project",
+                            projectId: project.id
+                        })}
+                    ondrop={(event) => void onProjectRootDrop(event, project)}
+                >
                     {#if isProjectRenameTarget}
-                        <div class="flex w-full items-center gap-2 rounded-lg bg-base-content/5 px-1">
+                        <div class="flex w-full items-center gap-2 rounded-lg bg-gray-500/10 px-1">
                             <div class="flex gap-2 items-center w-full">
                                 <Icon icon="material-symbols:code-blocks-outline-rounded" />
                                 <EntryNameEditor
@@ -1360,7 +1480,10 @@
                         </div>
                     {:else}
                         <button
-                            class={`flex w-full cursor-pointer items-center justify-between gap-4 rounded-lg border p-1 transition-colors hover:bg-base-content/5 ${isProjectContextMenuOpen(project) ? 'border-blue-400/90 shadow-[inset_0_0_0_1px_rgba(96,165,250,0.9)]' : 'border-transparent'} ${showSelectedProject && $openProjectIds.includes(project.id) ? "bg-base-content/20" : ""} ${isProjectDropTarget(project.id) ? 'bg-base-content/30 border-base-content/60 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.16)]' : ''}`}
+                            class={`flex w-full cursor-pointer items-center justify-between gap-4 rounded-lg border p-1 transition-colors hover:bg-gray-500/5 ${isProjectContextMenuOpen(project) ? 'border-blue-400/90 shadow-[inset_0_0_0_1px_rgba(96,165,250,0.9)]' : 'border-transparent'} ${showSelectedProject && selectedProjectId === project.id ? 'bg-gray-500/15 bg-gray-500/50 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.12)]' : ''} ${isProjectDropTarget(project.id) ? 'bg-sky-500/20 border-sky-400 shadow-[inset_0_0_0_1px_rgba(56,189,248,0.65)]' : ''}`}
+                            onpointerdown={() => {
+                                selectedProjectId = project.id;
+                            }}
                             onclick={onToggleProjectHandle(project)}
                             oncontextmenu={onProjectContextMenu(project)}
                             ondragover={(event) => onProjectDragOver(event, project.id)}
@@ -1410,7 +1533,7 @@
                                     {entry}
                                     {CustomFileElement}
                                     {CustomFolderElement}
-                                    {onToggleEntry}
+                                    onToggleEntry={onToggleEntryForProject(project.id)}
                                     {onEntryContextMenu}
                                     renameState={nestedRenameState}
                                     createState={nestedCreateState}

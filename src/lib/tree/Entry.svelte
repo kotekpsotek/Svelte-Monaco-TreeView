@@ -182,11 +182,11 @@
             </div>
         {:else}
             <button
-                class={`entry-register p-1 w-full flex items-center justify-between gap-2 cursor-pointer hover:bg-base-content/5 rounded-lg border border-transparent ${isFileAndOpen ? "bg-base-content/10" : ""} ${isFolderDropHighlight ? "bg-base-content/30 border-base-content/60 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.16)]" : ""}`}
+                class={`entry-register select-none p-1 w-full flex items-center justify-between gap-2 cursor-pointer hover:bg-base-content/5 rounded-lg border border-transparent ${isFileAndOpen ? "bg-base-content/10" : ""} ${isFolderDropHighlight ? "bg-sky-500/20 border-sky-400 shadow-[inset_0_0_0_1px_rgba(56,189,248,0.65)]" : ""}`}
                 class:context-menu-open={isContextMenuOpen}
                 onclick={onToggleEntryLocal(entry)}
                 oncontextmenu={onEntryContextMenu(entry)}
-                draggable="true"
+                draggable={true}
                 ondragstart={onDragStart}
                 ondragend={onEntryDragEnd}
                 ondragover={entry.type === "folder"
