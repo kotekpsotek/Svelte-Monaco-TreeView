@@ -66,6 +66,12 @@
         parentFolder: Folder | null;
     }
 
+    export interface CreatedEntryLocationContext {
+        project: Project;
+        parentFolder: Folder | null;
+        folderPath: Folder[];
+    }
+
     export interface Props {
         treeName: string;
         nameStripeButtons?: {
@@ -84,6 +90,8 @@
         onToggleProject?: (project: Project) => void | Promise<void>;
         onNewFile?: (context?: CreateEntityContext) => Promise<void> | void;
         onNewFolder?: (context?: CreateEntityContext) => Promise<void> | void;
+        onFileCreated?: (file: File, context: CreatedEntryLocationContext) => Promise<void> | void;
+        onFolderCreated?: (folder: Folder, context: CreatedEntryLocationContext) => Promise<void> | void;
         onNewProject?: () => Promise<void> | void;
         onRefreshTreeView?: () => Promise<void> | void;
         onRenameFile?: (file: File) => Promise<void> | void;
@@ -249,6 +257,8 @@
         onToggleProject = () => {},
         onNewFile = () => {},
         onNewFolder = () => {},
+        onFileCreated,
+        onFolderCreated,
         onNewProject = () => {},
         onRefreshTreeView = () => {},
         onRenameFile,
@@ -728,6 +738,44 @@
         };
     }
 
+    function resolveCreatedEntryLocationContext(items: Project[], target: CreateTarget): CreatedEntryLocationContext | null {
+        const projectData = findProjectById(items, target.projectId);
+        if (!projectData) {
+            return null;
+        }
+
+        if (target.folderId === null) {
+            return {
+                project: projectData.project,
+                parentFolder: null,
+                folderPath: []
+            };
+        }
+
+        const parentFolderLocation = findEntryLocation(items, target.projectId, target.folderId);
+        if (!parentFolderLocation || parentFolderLocation.entry.type !== "folder") {
+            return null;
+        }
+
+        const folderPathIds = getFolderPath(projectData.project, target.folderId) ?? [target.folderId];
+        const folderPath: Folder[] = folderPathIds
+            .map((folderId) => {
+                const location = findEntryLocation(items, target.projectId, folderId);
+                if (!location || location.entry.type !== "folder") {
+                    return null;
+                }
+
+                return location.entry;
+            })
+            .filter((folder): folder is Folder => folder !== null);
+
+        return {
+            project: projectData.project,
+            parentFolder: parentFolderLocation.entry,
+            folderPath
+        };
+    }
+
     function ensureCreateTargetVisible(target: CreateTarget) {
         $openProjectIds = addUniqueId($openProjectIds, target.projectId);
 
@@ -867,8 +915,21 @@
                 };
 
         createContainer.container.unshift(newEntry);
+
+        const createdEntryLocationContext = resolveCreatedEntryLocationContext(nextProjects, createState.target);
         setProjects(nextProjects);
         pendingCreate = null;
+
+        if (!createdEntryLocationContext) {
+            return;
+        }
+
+        if (newEntry.type === "file") {
+            await onFileCreated?.(newEntry, createdEntryLocationContext);
+        }
+        else {
+            await onFolderCreated?.(newEntry, createdEntryLocationContext);
+        }
     }
 
     function cancelProjectCreation() {
