@@ -110,6 +110,7 @@
             type="button"
             class="btn btn-sm btn-ghost"
             title="Accept"
+            disabled={!value.trim().length}
             onclick={() => void accept()}
         >
             <Icon icon="material-symbols:check-rounded"/>

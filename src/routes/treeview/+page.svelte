@@ -1,6 +1,7 @@
 <script lang="ts">
+	import { startCreateProject } from "$lib/tree/createProject.js";
 	import MonacoTree, { type Props } from "$lib/tree/MonacoTree.svelte";
-	import type { Project } from "$lib/tree/types.ts";
+	import type { Project } from "$lib/tree/types.js";
 
     const projects: Project[] = [
         {
@@ -109,6 +110,10 @@
         }
     ];
 
+    const onAddProjectManually = async () => {
+        await startCreateProject();
+    }
+
     const onToggleEntry: Props["onToggleEntry"] = (entry) => {
 
     }
@@ -132,9 +137,20 @@
     const onRefreshTreeView: Props["onRefreshTreeView"] = () => {
 
     }
+
+    const onProjectCreated: Props["onProjectCreated"] = (project) => {
+        alert("Project created: " + JSON.stringify(project, null, 4))
+    }
 </script>
 
 <div class="w-[500px] h-screen">
+    <button 
+        class="btn"
+        onclick={onAddProjectManually}
+    >
+        Add Manually
+    </button>
+
     <MonacoTree
         treeName="Test Tree"
         {projects}
@@ -144,5 +160,7 @@
         {onNewFolder}
         {onNewProject}
         {onRefreshTreeView}
+        {onProjectCreated}
     />
+
 </div>

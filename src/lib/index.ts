@@ -6,6 +6,8 @@ export { default as MonacoIcon } from "./tree/Icon.svelte";
 export {
     openProjectIds,
     openFolderIds,
-    openFileIds
+    openFileIds,
+    creationInitialziedProject,
 } from "./tree/store.ts";
+export { startCreateProject, isProjectCreating } from "./tree/createProject.ts";
 export * as TreeTypes from "./tree/types.ts";

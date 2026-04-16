@@ -129,7 +129,14 @@
     import EntryNameEditor from "./EntryNameEditor.svelte";
     import MonacoContextMenu, { type ContextMenuItem as ContextMenuOption } from "../contextmenu/MonacoContextMenu.svelte";
     import Icon from "./IconifyOffline.svelte";
-    import { activeContextMenu, openFileIds, openFolderIds, openProjectIds, openProjects } from "./store.ts";
+    import {
+        activeContextMenu,
+        openFileIds,
+        openFolderIds,
+        openProjectIds,
+        openProjects,
+    } from "./store.ts";
+	import { finishCreateProject, isProjectCreating, registerStartCreateProjectHandler, startCreateProject as requestStartCreateProject } from "./createProject.ts";
 
     type TreeEntry = File | Folder;
     type ButtonName = keyof NonNullable<Props["nameStripeButtons"]>;
@@ -588,6 +595,10 @@
     }
 
     function cancelInlineEdit() {
+        if (pendingCreate?.kind === "project") {
+            finishCreateProject();
+        }
+
         pendingCreate = null;
         pendingRename = null;
     }
@@ -834,6 +845,10 @@
     }
 
     async function startCreate(kind: "file" | "folder", target: CreateTarget) {
+        if (isProjectCreating()) {
+            return;
+        }
+
         selectedProjectId = target.projectId;
 
         const context = resolveCreateContext(target);
@@ -858,6 +873,10 @@
     }
 
     async function startCreateProject() {
+        if (pendingCreate?.kind === "project") {
+            return;
+        }
+
         await onNewProject();
         await onProjectAddition?.();
         pendingRename = null;
@@ -889,6 +908,7 @@
             $openProjectIds = [...$openProjectIds, nextProject.id];
             pendingCreate = null;
             pendingProjectName = "";
+            finishCreateProject();
             await onProjectCreated?.(nextProject);
             return;
         }
@@ -954,7 +974,7 @@
 
     async function beginRenameProject(project: Project) {
         await onRenameProject?.(project);
-        pendingCreate = null;
+        cancelInlineEdit();
         pendingRename = {
             kind: "project",
             projectId: project.id
@@ -969,7 +989,7 @@
             await onRenameFolder?.(entry);
         }
 
-        pendingCreate = null;
+        cancelInlineEdit();
         pendingRename = {
             kind: entry.type,
             projectId,
@@ -1145,7 +1165,7 @@
             await startCreate("folder", { projectId, folderId: null });
         }
         else if (action === "new-project") {
-            await startCreateProject();
+            await requestStartCreateProject();
         }
         else if (action === "rename-project") {
             await beginRenameProject(project);
@@ -1232,7 +1252,7 @@
 
     async function runEmptyTrayDefaultAction(action: EmptyTrayContextMenuAction) {
         if (action === "add-new-project") {
-            await startCreateProject();
+            await requestStartCreateProject();
         }
     }
 
@@ -1432,7 +1452,7 @@
         }
 
         if (buttonName === "newProject") {
-            await startCreateProject();
+            await requestStartCreateProject();
             return;
         }
 
@@ -1450,6 +1470,15 @@
             await startCreate("folder", target);
         }
     }
+
+    $effect(() => {
+        const unregisterStartCreateProjectHandler = registerStartCreateProjectHandler(startCreateProject);
+
+        return () => {
+            unregisterStartCreateProjectHandler();
+            finishCreateProject();
+        };
+    });
 
     $effect(() => {
         const currentContextMenu = $activeContextMenu;
