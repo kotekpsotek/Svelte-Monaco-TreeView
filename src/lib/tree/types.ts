@@ -3,6 +3,8 @@ export interface File {
     type: "file";
     /** It's file name with file extension */
     name: string;
+    /** Present only when the file / folder is loaded on the device */
+    locationDevice?: string;
 }
 
 export interface Folder {
@@ -10,6 +12,8 @@ export interface Folder {
     type: "folder";
     name: string;
     subentries: (Folder | File)[];
+    /** Present only when the file / folder is loaded on the device */
+    locationDevice?: string;
 }
 
 export interface Project {
@@ -18,6 +22,11 @@ export interface Project {
     name: string;
     /** Specified only for project name */
     gitRepositoryURL?: string;
+    /**
+     * Is the location on device where is the project specified in form of absolute path
+     * Present only when the project is on the device
+    */
+    locationDevice?: string;
     entries: (Folder | File)[];
 }
 

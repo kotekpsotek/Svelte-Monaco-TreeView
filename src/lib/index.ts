@@ -8,3 +8,4 @@ export {
     openFolderIds,
     openFileIds
 } from "./tree/store.ts";
+export * as TreeTypes from "./tree/types.ts";

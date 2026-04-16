@@ -111,7 +111,7 @@
         onFileContextAction?: (action: FileContextMenuAction, file: File) => void | Promise<void>;
         onFolderContextAction?: (action: FolderContextMenuAction, folder: Folder) => void | Promise<void>;
         onProjectAddition?: () => Promise<void> | void;
-        onProjectAdded?: (project: Project) => Promise<void> | void;
+        onProjectCreated?: (project: Project) => Promise<void> | void;
         projectContextMenu?: Snippet<[ProjectContextMenuSnippetProps]>;
         fileContextMenu?: Snippet<[FileContextMenuSnippetProps]>;
         folderContextMenu?: Snippet<[FolderContextMenuSnippetProps]>;
@@ -278,7 +278,7 @@
         onFileContextAction,
         onFolderContextAction,
         onProjectAddition,
-        onProjectAdded,
+        onProjectCreated,
         projectContextMenu,
         fileContextMenu,
         folderContextMenu,
@@ -889,7 +889,7 @@
             $openProjectIds = [...$openProjectIds, nextProject.id];
             pendingCreate = null;
             pendingProjectName = "";
-            await onProjectAdded?.(nextProject);
+            await onProjectCreated?.(nextProject);
             return;
         }
 
