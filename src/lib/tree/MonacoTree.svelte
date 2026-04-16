@@ -131,12 +131,13 @@
     import Icon from "./IconifyOffline.svelte";
     import {
         activeContextMenu,
+        creationInitialziedProject,
         openFileIds,
         openFolderIds,
         openProjectIds,
         openProjects,
     } from "./store.ts";
-	import { finishCreateProject, isProjectCreating, registerStartCreateProjectHandler, startCreateProject as requestStartCreateProject } from "./createProject.ts";
+    import { finishCreateProject, isProjectCreating, registerStartCreateProjectHandler, startCreateProject as requestStartCreateProject } from "./createProject.ts";
 
     type TreeEntry = File | Folder;
     type ButtonName = keyof NonNullable<Props["nameStripeButtons"]>;
@@ -181,6 +182,11 @@
     interface DragState {
         projectId: string;
         entryId: string;
+    }
+
+    interface SelectedFolderTarget {
+        projectId: string;
+        folderId: string;
     }
 
     type DropTarget =
@@ -301,6 +307,7 @@
     let dragState = $state<DragState | null>(null);
     let activeDropTarget = $state<DropTarget | null>(null);
     let selectedProjectId = $state<string | null>(null);
+    let selectedFolderTarget = $state<SelectedFolderTarget | null>(null);
     let pendingProjectName = $state("");
 
     let nestedRenameState = $derived.by((): NestedRenameState | null => {
@@ -340,6 +347,24 @@
             selectedProjectId = projects[0].id;
         }
     });
+
+    $effect(() => {
+        if ($creationInitialziedProject) {
+            return;
+        }
+
+        if (pendingCreate?.kind === "project") {
+            pendingCreate = null;
+            pendingProjectName = "";
+        }
+    });
+
+    function setSelectedFolderTarget(projectId: string, folderId: string) {
+        selectedFolderTarget = {
+            projectId,
+            folderId
+        };
+    }
 
     function createId(prefix: string): string {
         if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -618,6 +643,7 @@
 
     function toggleFolderOpen(folder: Folder, projectId: string) {
         selectedProjectId = projectId;
+        setSelectedFolderTarget(projectId, folder.id);
 
         if ($openFolderIds.includes(folder.id)) {
             $openFolderIds = removeId($openFolderIds, folder.id);
@@ -831,6 +857,23 @@
 
         if ($activeContextMenu?.kind === "file") {
             return resolveEntryParentTarget($activeContextMenu.projectId, $activeContextMenu.file);
+        }
+
+        if (selectedFolderTarget && (!selectedProjectId || selectedFolderTarget.projectId === selectedProjectId)) {
+            const selectedFolderLocation = findEntryLocation(
+                projects,
+                selectedFolderTarget.projectId,
+                selectedFolderTarget.folderId
+            );
+
+            if (selectedFolderLocation?.entry.type === "folder") {
+                return {
+                    projectId: selectedFolderTarget.projectId,
+                    folderId: selectedFolderTarget.folderId
+                };
+            }
+
+            selectedFolderTarget = null;
         }
 
         const fallbackProjectId = selectedProjectId ?? $openProjectIds.at(-1) ?? projects[0]?.id;
@@ -1300,6 +1343,8 @@
             return;
         }
 
+        setSelectedFolderTarget(projectId, entry.id);
+
         $activeContextMenu = {
             kind: "folder",
             x: event.clientX,
@@ -1441,6 +1486,11 @@
     function onToggleEntryForProject(projectId: string) {
         return (entry: TreeEntry) => {
             selectedProjectId = projectId;
+
+            if (entry.type === "folder") {
+                setSelectedFolderTarget(projectId, entry.id);
+            }
+
             onToggleEntry(entry);
         };
     }

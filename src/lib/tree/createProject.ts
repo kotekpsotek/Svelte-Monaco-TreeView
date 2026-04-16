@@ -3,15 +3,13 @@ import { creationInitialziedProject } from "./store.ts";
 
 type StartCreateProjectHandler = () => Promise<void> | void;
 
-let startCreateProjectHandler: StartCreateProjectHandler | null = null;
+const startCreateProjectHandlers = new Set<StartCreateProjectHandler>();
 
 export function registerStartCreateProjectHandler(handler: StartCreateProjectHandler): () => void {
-    startCreateProjectHandler = handler;
+    startCreateProjectHandlers.add(handler);
 
     return () => {
-        if (startCreateProjectHandler === handler) {
-            startCreateProjectHandler = null;
-        }
+        startCreateProjectHandlers.delete(handler);
     };
 }
 
@@ -30,13 +28,13 @@ export async function startCreateProject(): Promise<boolean> {
 
     creationInitialziedProject.set(true);
 
-    if (!startCreateProjectHandler) {
+    if (!startCreateProjectHandlers.size) {
         finishCreateProject();
         return false;
     }
 
     try {
-        await startCreateProjectHandler();
+        await Promise.all([...startCreateProjectHandlers].map((handler) => Promise.resolve(handler())));
         return true;
     }
     catch (error) {
